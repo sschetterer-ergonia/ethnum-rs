@@ -17,10 +17,36 @@ mod llvm;
 mod native;
 pub mod signed;
 
+use core::mem::MaybeUninit;
+
+use crate::{I256, U256};
+
 #[cfg(feature = "llvm-intrinsics")]
 pub use self::llvm::*;
 #[cfg(not(feature = "llvm-intrinsics"))]
 pub use self::native::*;
+
+#[inline(always)]
+pub fn safe_udivmod4(a: &U256, b: &U256) -> (U256, U256) {
+    let mut res = MaybeUninit::uninit();
+    let mut r = MaybeUninit::uninit();
+    // SAFETY: `udivmod4` does not write `MaybeUninit::uninit()` to `rem` and
+    // `U256` does not implement `Drop`.
+    udivmod4(&mut res, a, b, Some(&mut r));
+
+    unsafe { (res.assume_init(), r.assume_init()) }
+}
+
+#[inline(always)]
+pub fn safe_idivmod4(a: &I256, b: &I256) -> (I256, I256) {
+    let mut res = MaybeUninit::uninit();
+    let mut r = MaybeUninit::uninit();
+    // SAFETY: `udivmod4` does not write `MaybeUninit::uninit()` to `rem` and
+    // `U256` does not implement `Drop`.
+    idivmod4(&mut res, a, b, Some(&mut r));
+
+    unsafe { (res.assume_init(), r.assume_init()) }
+}
 
 #[cfg(test)]
 mod tests {

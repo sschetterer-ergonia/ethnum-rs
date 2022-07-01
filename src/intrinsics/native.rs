@@ -9,5 +9,6 @@ mod rot;
 mod shl;
 mod shr;
 mod sub;
+mod wide_int_div;
 
 pub use self::{add::*, ctz::*, divmod::*, mul::*, rot::*, shl::*, shr::*, sub::*};

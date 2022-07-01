@@ -15,16 +15,10 @@ categories = ["cryptography::cryptocurrencies", "mathematics", "no-std"]
 [package.metadata.docs.rs]
 features = ["serde"]
 
-[workspace]
-members = [
-  "bench",
-  "fuzz",
-  "intrinsics",
-]
-
 [features]
 llvm-intrinsics = ["ethnum-intrinsics"]
 
 [dependencies]
 ethnum-intrinsics = { version = "1", path = "intrinsics", optional = true }
 serde = { version = "1", default-features = false, optional = true }
+specialized-div-rem = "1.1.0"

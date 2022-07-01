@@ -42,7 +42,7 @@ fn udiv256_by_128_to_128(u1: u128, u0: u128, mut v: u128, r: &mut u128) -> u128 
     un0 = un10 & 0xFFFF_FFFF_FFFF_FFFF;
 
     // Compute the first quotient digit, q1.
-    q1 = un128 / vn1;
+    q1 = super::wide_int_div::u128_by_128_div(un128, vn1);
     let mut rhat = un128 - q1 * vn1;
 
     // q1 has at most error 2. No more than 2 iterations.
@@ -60,7 +60,7 @@ fn udiv256_by_128_to_128(u1: u128, u0: u128, mut v: u128, r: &mut u128) -> u128 
         .wrapping_sub(q1.wrapping_mul(v));
 
     // Compute the second quotient digit.
-    q0 = un21 / vn1;
+    q0 = super::wide_int_div::u128_by_128_div(un21, vn1);
     rhat = un21 - q0 * vn1;
 
     // q0 has at most error 2. No more than 2 iterations.
@@ -81,6 +81,7 @@ fn udiv256_by_128_to_128(u1: u128, u0: u128, mut v: u128, r: &mut u128) -> u128 
 }
 
 #[allow(clippy::many_single_char_names)]
+#[inline(always)]
 pub fn udivmod4(
     res: &mut MaybeUninit<U256>,
     a: &U256,
@@ -100,11 +101,16 @@ pub fn udivmod4(
     // ```
     // Unfortunately, there is no 256-bit equivalent on x86_64, but we can still
     // shortcut if the high and low values of the operands are 0:
+
+    // I overwrite here with a local specialization since it makes constant propagation
+    // get rid of most of the work for our use case, which is largely dividing
+    // 256 bit numbers by a 64 bit numbers
     if a.high() | b.high() == 0 {
+        let (div, calc_rem) = super::wide_int_div::u128_div_rem_trifecta(*a.low(), *b.low());
         if let Some(rem) = rem {
-            rem.write(U256::from_words(0, a.low() % b.low()));
+            rem.write(U256::from_words(0, calc_rem));
         }
-        res.write(U256::from_words(0, a.low() / b.low()));
+        res.write(U256::from_words(0, div));
         return;
     }
 
@@ -139,10 +145,12 @@ pub fn udivmod4(
         } else {
             // First, divide with the high part to get the remainder in dividend.s.high.
             // After that dividend.s.high < divisor.s.low.
+            let (div, calc_rem) =
+                super::wide_int_div::u128_div_rem_trifecta(*dividend.high(), *divisor.low());
             quotient = U256::from_words(
-                dividend.high() / divisor.low(),
+                div,
                 udiv256_by_128_to_128(
-                    dividend.high() % divisor.low(),
+                    calc_rem,
                     *dividend.low(),
                     *divisor.low(),
                     remainder.low_mut(),
@@ -184,7 +192,7 @@ pub fn udivmod4(
     res.write(quotient);
 }
 
-#[inline]
+#[inline(always)]
 pub fn udiv2(r: &mut U256, a: &U256) {
     let (a, b) = (*r, a);
     // SAFETY: `udivmod4` does not write `MaybeUninit::uninit()` to `res` and
@@ -193,12 +201,12 @@ pub fn udiv2(r: &mut U256, a: &U256) {
     udivmod4(res, &a, b, None);
 }
 
-#[inline]
+#[inline(always)]
 pub fn udiv3(r: &mut MaybeUninit<U256>, a: &U256, b: &U256) {
     udivmod4(r, a, b, None);
 }
 
-#[inline]
+#[inline(always)]
 pub fn urem2(r: &mut U256, a: &U256) {
     let mut res = MaybeUninit::uninit();
     let (a, b) = (*r, a);
@@ -208,12 +216,13 @@ pub fn urem2(r: &mut U256, a: &U256) {
     udivmod4(&mut res, &a, b, Some(r));
 }
 
-#[inline]
+#[inline(always)]
 pub fn urem3(r: &mut MaybeUninit<U256>, a: &U256, b: &U256) {
     let mut res = MaybeUninit::uninit();
     udivmod4(&mut res, a, b, Some(r));
 }
 
+#[inline(always)]
 pub fn idivmod4(
     res: &mut MaybeUninit<I256>,
     a: &I256,
@@ -242,7 +251,7 @@ pub fn idivmod4(
     }
 }
 
-#[inline]
+#[inline(always)]
 pub fn idiv2(r: &mut I256, a: &I256) {
     let (a, b) = (*r, a);
     // SAFETY: `udivmod4` does not write `MaybeUninit::uninit()` to `res` and
@@ -251,12 +260,12 @@ pub fn idiv2(r: &mut I256, a: &I256) {
     idivmod4(res, &a, b, None);
 }
 
-#[inline]
+#[inline(always)]
 pub fn idiv3(r: &mut MaybeUninit<I256>, a: &I256, b: &I256) {
     idivmod4(r, a, b, None);
 }
 
-#[inline]
+#[inline(always)]
 pub fn irem2(r: &mut I256, a: &I256) {
     let mut res = MaybeUninit::uninit();
     let (a, b) = (*r, a);
@@ -266,7 +275,7 @@ pub fn irem2(r: &mut I256, a: &I256) {
     idivmod4(&mut res, &a, b, Some(r));
 }
 
-#[inline]
+#[inline(always)]
 pub fn irem3(r: &mut MaybeUninit<I256>, a: &I256, b: &I256) {
     let mut res = MaybeUninit::uninit();
     idivmod4(&mut res, a, b, Some(r));
