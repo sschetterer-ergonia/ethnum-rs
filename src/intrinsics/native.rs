@@ -10,5 +10,6 @@ mod shl;
 mod shr;
 mod sub;
 mod wide_int_div;
+mod wide_int_div_nonconst;
 
 pub use self::{add::*, ctz::*, divmod::*, mul::*, rot::*, shl::*, shr::*, sub::*};

@@ -9,7 +9,7 @@
 //! - signed division: <https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/builtins/divmodti4.c>
 //! - unsigned division: <https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/builtins/udivmodti4.c>
 
-use crate::{int::I256, uint::U256};
+use crate::{int::I256, intrinsics::native::wide_int_div_nonconst, uint::U256};
 use core::mem::MaybeUninit;
 
 #[inline(always)]
@@ -60,7 +60,7 @@ fn udiv256_by_128_to_128(u1: u128, u0: u128, mut v: u128, r: &mut u128) -> u128 
         .wrapping_sub(q1.wrapping_mul(v));
 
     // Compute the second quotient digit.
-    q0 = super::wide_int_div::u128_by_128_div(un21, vn1);
+    q0 = wide_int_div_nonconst::u128_div_rem(un21, vn1).0;
     rhat = un21 - q0 * vn1;
 
     // q0 has at most error 2. No more than 2 iterations.
@@ -106,7 +106,7 @@ pub fn udivmod4(
     // get rid of most of the work for our use case, which is largely dividing
     // 256 bit numbers by a 64 bit numbers
     if a.high() | b.high() == 0 {
-        let (div, calc_rem) = super::wide_int_div::u128_div_rem_trifecta(*a.low(), *b.low());
+        let (div, calc_rem) = wide_int_div_nonconst::u128_div_rem(*a.low(), *b.low());
         if let Some(rem) = rem {
             rem.write(U256::from_words(0, calc_rem));
         }
@@ -146,7 +146,7 @@ pub fn udivmod4(
             // First, divide with the high part to get the remainder in dividend.s.high.
             // After that dividend.s.high < divisor.s.low.
             let (div, calc_rem) =
-                super::wide_int_div::u128_div_rem_trifecta(*dividend.high(), *divisor.low());
+                wide_int_div_nonconst::u128_div_rem(*dividend.high(), *divisor.low());
             quotient = U256::from_words(
                 div,
                 udiv256_by_128_to_128(

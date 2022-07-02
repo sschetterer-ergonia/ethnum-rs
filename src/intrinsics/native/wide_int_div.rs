@@ -1,6 +1,6 @@
 use specialized_div_rem::impl_trifecta;
 
-fn zero_div_fn<T>() -> T {
+pub fn zero_div_fn<T>() -> T {
     panic!("Divide by zero enocuntered in fixed64")
 }
 
@@ -29,8 +29,8 @@ pub fn u64_by_u64_div_rem(duo: u64, div: u64) -> (u64, u64) {
 // microarchitecture can multiply and divide. We decide to be optimistic and assume `trifecta` is
 // faster if the target pointer width is at least 64.
 impl_trifecta!(
-    u128_div_rem_trifecta,
-    i128_div_rem_trifecta,
+    u128_div_rem,
+    i128_div_rem,
     zero_div_fn,
     u64_by_u64_div_rem,
     32,
@@ -44,5 +44,5 @@ impl_trifecta!(
 
 #[inline(always)]
 pub fn u128_by_128_div(duo: u128, by: u128) -> u128 {
-    u128_div_rem_trifecta(duo, by).0
+    u128_div_rem(duo, by).0
 }
