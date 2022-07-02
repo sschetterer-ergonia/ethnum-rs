@@ -8,9 +8,6 @@ edition = "2021"
 name = "num"
 harness = false
 
-[features]
-llvm-intrinsics = ["ethnum/llvm-intrinsics"]
-
 [dependencies]
 ethnum = { path = ".." }
 criterion = "0.3"
