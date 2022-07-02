@@ -6,7 +6,7 @@
 ///
 /// If the quotient does not fit in a `u32`, a floating point exception occurs.
 /// If `div == 0`, then a division by zero exception occurs.
-#[cfg(all(target_arch = "x86_64"))]
+#[cfg(target_arch = "x86_64")]
 mod inner {
 
     use super::super::wide_int_div::zero_div_fn;
@@ -81,9 +81,9 @@ mod inner {
     );
 }
 
-#[cfg(all(feature = "asm", target_arch = "x86"))]
+#[cfg(not(target_arch = "x86_64"))]
 mod inner {
-    pub use super::wide_int_div::*;
+    pub use super::super::wide_int_div::*;
 }
 
 pub use inner::*;
